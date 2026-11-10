@@ -256,25 +256,106 @@ TLS 1.2: 2
 Вивід кроків 3.1 і 3.2:
 
 ```text
+root@se-201-04:/lab/work# acme-root                                                                                        
+openssl x509 -in /lab/tls/acme-root.crt -noout -subject -dates
+збережено /lab/tls/acme-root.crt
+subject=CN = Pebble Root CA 048ce0
+notBefore=Nov 10 18:47:03 2026 GMT
+notAfter=Nov 10 18:47:03 2056 GMT
+
+root@se-201-04:/lab/work# curl -sS --cacert /lab/tls/acme-root.crt https://www.se-201-04.lab/
+curl: (60) SSL certificate problem: self-signed certificate
+More details here: https://curl.se/docs/sslcerts.html
+
+curl failed to verify the legitimacy of the server and therefore could not
+establish a secure connection to it. To learn more about this situation and
+how to fix it, please visit the web page mentioned above.
 
 ```
 
 Вивід кроку 3.3 (останні рядки `lego` і рядки журналу nginx):
 
 ```text
+root@se-201-04:/lab/work# lego --server $ACME_DIR --email admin@se-201-04.lab --accept-tos --path /lab/work/lego \
+  --http --http.webroot /var/www/acme \
+  --domains www.se-201-04.lab --domains shop.se-201-04.lab run --no-bundle
+grep acme-challenge /var/log/nginx/access.log
+2026/11/10 19:40:38 No key found for account admin@se-201-04.lab. Generating a P256 key.
+2026/11/10 19:40:38 Saved key to /lab/work/lego/accounts/ca.lab_14000/admin@se-201-04.lab/keys/admin@se-201-04.lab.key
+2026/11/10 19:40:38 [INFO] acme: Registering account for admin@se-201-04.lab
+!!!! HEADS UP !!!!
 
+Your account credentials have been saved in your Let's Encrypt
+configuration directory at "/lab/work/lego/accounts".
+
+You should make a secure backup of this folder now. This
+configuration directory will also contain certificates and
+private keys obtained from Let's Encrypt so making regular
+backups of this folder is ideal.
+2026/11/10 19:40:38 [INFO] [www.se-201-04.lab, shop.se-201-04.lab] acme: Obtaining SAN certificate
+2026/11/10 19:40:38 [INFO] [shop.se-201-04.lab] AuthURL: https://ca.lab:14000/authZ/XL0aj9CuHbhoGOMmgQDp4HJsrut2sUwKk02pQCkFg8E
+2026/11/10 19:40:38 [INFO] [www.se-201-04.lab] AuthURL: https://ca.lab:14000/authZ/U-hiCfF2IqVSpXoRZNPt8msG4yEDeB-VTVaYIbcpLto
+2026/11/10 19:40:38 [INFO] [shop.se-201-04.lab] acme: Could not find solver for: tls-alpn-01
+2026/11/10 19:40:38 [INFO] [shop.se-201-04.lab] acme: use http-01 solver
+2026/11/10 19:40:38 [INFO] [www.se-201-04.lab] acme: Could not find solver for: tls-alpn-01
+2026/11/10 19:40:38 [INFO] [www.se-201-04.lab] acme: use http-01 solver
+2026/11/10 19:40:38 [INFO] [shop.se-201-04.lab] acme: Trying to solve HTTP-01
+2026/11/10 19:40:46 [INFO] [shop.se-201-04.lab] The server validated our request
+2026/11/10 19:40:46 [INFO] [www.se-201-04.lab] acme: Trying to solve HTTP-01
+2026/11/10 19:40:51 [INFO] [www.se-201-04.lab] The server validated our request
+2026/11/10 19:40:51 [INFO] [www.se-201-04.lab, shop.se-201-04.lab] acme: Validations succeeded; requesting certificates
+2026/11/10 19:40:51 [INFO] Wait for certificate [timeout: 30s, interval: 500ms]
+2026/11/10 19:40:51 [INFO] [www.se-201-04.lab] Server responded with a certificate.
+10.53.0.10 - - [10/Nov/2026:19:40:38 +0000] "GET /.well-known/acme-challenge/7FI58Dy3bqKHIPsEk57IRrkxYVvuCABm-QivM5Wr1JQ HTTP/1.1" 200 87 "-" "LetsEncrypt-Pebble-VA (linux; amd64)"
+10.53.0.10 - - [10/Nov/2026:19:40:38 +0000] "GET /.well-known/acme-challenge/7FI58Dy3bqKHIPsEk57IRrkxYVvuCABm-QivM5Wr1JQ HTTP/1.1" 200 87 "-" "LetsEncrypt-Pebble-VA (linux; amd64)"
+10.53.0.10 - - [10/Nov/2026:19:40:38 +0000] "GET /.well-known/acme-challenge/7FI58Dy3bqKHIPsEk57IRrkxYVvuCABm-QivM5Wr1JQ HTTP/1.1" 200 87 "-" "LetsEncrypt-Pebble-VA (linux; amd64)"
+10.53.0.10 - - [10/Nov/2026:19:40:46 +0000] "GET /.well-known/acme-challenge/jb9a_-Q9X27Q_28J4GBi3wi_lg6kCCM-uXCYMWsO48E HTTP/1.1" 200 87 "-" "LetsEncrypt-Pebble-VA (linux; amd64)"
+10.53.0.10 - - [10/Nov/2026:19:40:46 +0000] "GET /.well-known/acme-challenge/jb9a_-Q9X27Q_28J4GBi3wi_lg6kCCM-uXCYMWsO48E HTTP/1.1" 200 87 "-" "LetsEncrypt-Pebble-VA (linux; amd64)"
+10.53.0.10 - - [10/Nov/2026:19:40:46 +0000] "GET /.well-known/acme-challenge/jb9a_-Q9X27Q_28J4GBi3wi_lg6kCCM-uXCYMWsO48E HTTP/1.1" 200 87 "-" "LetsEncrypt-Pebble-VA (linux; amd64)"
 ```
 
 Вивід кроку 3.4:
 
 ```text
-
+root@se-201-04:/lab/work# cd /lab/work/lego/certificates
+openssl x509 -in www.se-201-04.lab.crt -noout -subject -issuer -dates -serial -ext subjectAltName
+openssl x509 -in www.se-201-04.lab.issuer.crt -noout -subject -issuer
+subject=CN = www.se-201-04.lab
+issuer=CN = Pebble Intermediate CA 3ed25a
+notBefore=Nov 10 19:40:51 2026 GMT
+notAfter=Nov 10 19:40:50 2031 GMT
+serial=54C957474916CB0F
+X509v3 Subject Alternative Name: 
+    DNS:www.se-201-04.lab, DNS:shop.se-201-04.lab
+subject=CN = Pebble Intermediate CA 3ed25a
+issuer=CN = Pebble Root CA 048ce0
 ```
 
 Вивід кроку 3.5:
 
 ```text
+root@se-201-04:/lab/work/lego/certificates# cp www.se-201-04.lab.crt /lab/tls/server.crt
+cp www.se-201-04.lab.key /lab/tls/server.key
+web-reload
+curl -sS --cacert /lab/tls/acme-root.crt https://www.se-201-04.lab/
+openssl s_client -connect www.se-201-04.lab:443 -servername www.se-201-04.lab -CAfile /lab/tls/acme-root.crt \
+  </dev/null 2>/dev/null | sed -n '/^Certificate chain/,/^---/p;/^Verify return code/p'
+nginx: the configuration file /lab/nginx.conf syntax is ok
+nginx: configuration file /lab/nginx.conf test is successful
+2026/11/10 19:43:38 [notice] 114#114: signal process started
+curl: (60) SSL certificate problem: unable to get local issuer certificate
+More details here: https://curl.se/docs/sslcerts.html
 
+curl failed to verify the legitimacy of the server and therefore could not
+establish a secure connection to it. To learn more about this situation and
+how to fix it, please visit the web page mentioned above.
+Certificate chain
+ 0 s:CN = www.se-201-04.lab
+   i:CN = Pebble Intermediate CA 3ed25a
+   a:PKEY: id-ecPublicKey, 256 (bit); sigalg: RSA-SHA256
+   v:NotBefore: Nov 10 19:40:51 2026 GMT; NotAfter: Nov 10 19:40:50 2031 GMT
+---
+Verify return code: 21 (unable to verify the first certificate)
 ```
 
 Вивід кроку 3.6:
