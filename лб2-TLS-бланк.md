@@ -361,32 +361,96 @@ Verify return code: 21 (unable to verify the first certificate)
 Вивід кроку 3.6:
 
 ```text
-
+root@se-201-04:/lab/work/lego/certificates# cat www.se-201-04.lab.crt www.se-201-04.lab.issuer.crt > /lab/tls/server.crt
+web-reload
+nginx: the configuration file /lab/nginx.conf syntax is ok
+nginx: configuration file /lab/nginx.conf test is successful
+2026/11/10 19:46:40 [notice] 123#123: signal process started
 ```
 
 | Параметр | Значення |
 |---|---|
-| Видавець сертифіката сервера | |
-| Видавець сертифіката видавця | |
-| Імена в SAN | |
-| Строк дії (від – до) | |
-| Тип ключа сервера і алгоритм підпису | |
-| Кількість сертифікатів, які надсилає сервер, у кроці 3.5 і в кроці 3.6 | |
+| Видавець сертифіката сервера | Pebble Intermediate CA 3ed25a |
+| Видавець сертифіката видавця | Pebble Root CA 048ce0 |
+| Імена в SAN | www.se-201-04.lab, shop.se-201-04.lab |
+| Строк дії (від – до) | v:NotBefore: Nov 10 19:40:51 2026 GMT; NotAfter: Nov 10 19:40:50 2031 GMT |
+| Тип ключа сервера і алгоритм підпису | id-ecPublicKey, 256 (bit); sigalg: RSA-SHA256 |
+| Кількість сертифікатів, які надсилає сервер, у кроці 3.5 і в кроці 3.6 | 1 і 2? |
 
 1. Хто і як перевірив, що ви контролюєте обидва імена? Вкажіть рядки виводу, які це підтверджують.
+```text
+2026/11/10 19:40:38 [INFO] [shop.se-201-04.lab] acme: Trying to solve HTTP-01
+2026/11/10 19:40:46 [INFO] [shop.se-201-04.lab] The server validated our request
+2026/11/10 19:40:46 [INFO] [www.se-201-04.lab] acme: Trying to solve HTTP-01
+2026/11/10 19:40:51 [INFO] [www.se-201-04.lab] The server validated our request
+2026/11/10 19:40:51 [INFO] [www.se-201-04.lab, shop.se-201-04.lab] acme: Validations succeeded; requesting certificates
+```
+2. Чому в кроці 3.5 перевірка не пройшла, хоча корінь центру сертифікації вказано в `--cacert`, а сертифікат виданий правильно? 
 
-2. Чому в кроці 3.5 перевірка не пройшла, хоча корінь центру сертифікації вказано в `--cacert`, а сертифікат виданий правильно?
+3. У виводі ланцюжка для сертифіката сервера вказано `id-ecPublicKey` і `RSA-SHA256`. Що означає кожне з цих значень і чому вони не суперечать одне одному? 
 
-3. У виводі ланцюжка для сертифіката сервера вказано `id-ecPublicKey` і `RSA-SHA256`. Що означає кожне з цих значень і чому вони не суперечать одне одному?
-
-4. Що станеться з перевіркою вашого сервера після перезапуску стенда і чому? Що в реальній інфраструктурі відповідає цій ситуації?
+4. Що станеться з перевіркою вашого сервера після перезапуску стенда і чому? Що в реальній інфраструктурі відповідає цій ситуації? 
 
 ## Завдання 4. Діагностика несправностей
 
 Вивід кроку 4.1:
 
 ```text
-
+root@se-201-04:/lab/work/lego/certificates# for i in 1 2 3 4 5; do
+  n=f$i.se-201-04.lab; echo "=== $n"
+  curl -sS --cacert $STAND_CA https://$n/ 2>&1 | head -1
+  openssl s_client -connect $n:443 -servername $n -CAfile $STAND_CA </dev/null 2>/dev/null \
+    | sed -n '/^Certificate chain/,/^---/p;/^Verify return code/p' | grep -v PKEY
+done
+=== f1.se-201-04.lab
+curl: (60) SSL certificate problem: unable to get local issuer certificate
+Certificate chain
+ 0 s:CN = f1.se-201-04.lab
+   i:O = Foreign Org, CN = Foreign Intermediate CA
+   v:NotBefore: Nov 10 18:47:01 2026 GMT; NotAfter: Feb  8 18:47:01 2027 GMT
+ 1 s:O = Foreign Org, CN = Foreign Intermediate CA
+   i:O = Foreign Org, CN = Foreign Root CA
+   v:NotBefore: Nov 10 18:47:01 2026 GMT; NotAfter: Nov  9 18:47:01 2031 GMT
+---
+Verify return code: 20 (unable to get local issuer certificate)
+=== f2.se-201-04.lab
+curl: (60) SSL: no alternative certificate subject name matches target host name 'f2.se-201-04.lab'
+Certificate chain
+ 0 s:CN = staging.se-201-04.lab
+   i:O = OPISM Lab, CN = OPISM Stand Intermediate CA
+   v:NotBefore: Nov 10 18:47:01 2026 GMT; NotAfter: Feb  8 18:47:01 2027 GMT
+ 1 s:O = OPISM Lab, CN = OPISM Stand Intermediate CA
+   i:O = OPISM Lab, CN = OPISM Stand Root CA
+   v:NotBefore: Nov 10 18:47:01 2026 GMT; NotAfter: Nov  9 18:47:01 2031 GMT
+---
+Verify return code: 0 (ok)
+=== f3.se-201-04.lab
+curl: (60) SSL certificate problem: unable to get local issuer certificate
+Certificate chain
+ 0 s:CN = f3.se-201-04.lab
+   i:O = OPISM Lab, CN = OPISM Stand Intermediate CA
+   v:NotBefore: Nov 10 18:47:01 2026 GMT; NotAfter: Feb  8 18:47:01 2027 GMT
+---
+Verify return code: 21 (unable to verify the first certificate)
+=== f4.se-201-04.lab
+curl: (60) SSL certificate problem: self-signed certificate
+Certificate chain
+ 0 s:CN = f4.se-201-04.lab
+   i:CN = f4.se-201-04.lab
+   v:NotBefore: Nov 10 18:47:01 2026 GMT; NotAfter: Feb  8 18:47:01 2027 GMT
+---
+Verify return code: 18 (self-signed certificate)
+=== f5.se-201-04.lab
+server: web, f5
+Certificate chain
+ 0 s:CN = f5.se-201-04.lab
+   i:O = OPISM Lab, CN = OPISM Stand Intermediate CA
+   v:NotBefore: Nov 10 18:47:01 2026 GMT; NotAfter: Feb  8 18:47:01 2027 GMT
+ 1 s:O = OPISM Lab, CN = OPISM Stand Intermediate CA
+   i:O = OPISM Lab, CN = OPISM Stand Root CA
+   v:NotBefore: Nov 10 18:47:01 2026 GMT; NotAfter: Nov  9 18:47:01 2031 GMT
+---
+Verify return code: 0 (ok)
 ```
 
 | Сервер | Помилка `curl` | `Verify return code` | Яка перевірка не пройшла | Рядок виводу, що це доводить | Що має змінити власник сервера |
@@ -416,6 +480,22 @@ Verify return code: 21 (unable to verify the first certificate)
 Вивід кроків 5.2 і 5.3:
 
 ```text
+root@se-201-04:/lab/work/lego/certificates# F='%{time_namelookup} %{time_connect} %{time_appconnect} %{time_starttransfer} %
+{time_total} %{http_version} %{num_connects}\n'
+U=https://cdn.se-201-04.lab/
+for i in 1 2 3; do curl -s -o /dev/null --cacert $STAND_CA -w "$F" $U; done
+for i in 1 2 3; do curl -s -o /dev/null --tls-max 1.2 --cacert $STAND_CA -w "$F" $U; done
+0.071633 0.106827 0.145911 0.181237 0.181296 2 1
+0.035466 0.071389 0.110682 0.146051 0.146128 2 1
+0.035536 0.070700 0.110004 0.145305 0.145371 2 1
+0.035443 0.070570 0.144217 0.179581 0.179638 2 1
+0.035436 0.070597 0.144904 0.180244 0.180304 2 1
+0.035460 0.070641 0.144923 0.180337 0.180418 2 1
+
+root@se-201-04:/lab/work/lego/certificates# curl -s --cacert $STAND_CA -w "$F" -o /dev/null $U -o /dev/null $U -o /dev/null $U
+0.035548 0.070692 0.109020 0.144390 0.144453 2 1
+0.000017 0.000000 0.000000 0.037558 0.037612 2 0
+0.000017 0.000000 0.000000 0.035408 0.035453 2 0
 
 ```
 
