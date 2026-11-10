@@ -97,8 +97,8 @@ client: 10.53.1.1
 Вивід кроку 2.1 (TLS 1.3):
 
 ```text
-root@se-201-04:/lab/work# openssl s_client -connect cdn.se-201-04.lab:443 -servername cdn.se-201-04.lab -alpn h2,http/1.1
- \                                                    
+root@se-201-04:/lab/work# openssl s_client -connect cdn.se-201-04.lab:443 -servername cdn.se-201-04.lab -alpn h2,http/1.1 
+\                                                     
   -CAfile $STAND_CA -trace </dev/null > t2-13.txt 2>&1
 grep -a -E '^(Sent|Received) Record|Content Type|^    [A-Z][A-Za-z]+, Length' t2-13.txt
 grep -a -E '^(ALPN|New,)|Verify return' t2-13.txt
@@ -143,10 +143,8 @@ Verify return code: 0 (ok)
 Вивід кроку 2.2 (TLS 1.2):
 
 ```text
-root@se-201-04:/lab/work# openssl s_client -connect cdn.se-201-04.lab:443 \ -servername cdn.se-201-04.lab \ -alpn
-h2,http/1.1
-  \
-   -CAfile "$STAND_CA" -trace -tls1_2 \ </dev/null > t2-12.txt 2>&1
+root@se-201-04:/lab/work# openssl s_client -connect cdn.se-201-04.lab:443 -servername cdn.se-201-04.lab -alpn h2,http/1.1 \
+  -CAfile $STAND_CA -trace -tls1_2 </dev/null > t2-12.txt 2>&1
 grep -a -E '^(Sent|Received) Record|Content Type|^    [A-Z][A-Za-z]+, Length' t2-12.txt
 grep -a -E '^(ALPN|New,)|Verify return' t2-12.txt
 Sent Record
@@ -160,7 +158,7 @@ Received Record
     Certificate, Length=976
 Received Record
   Content Type = Handshake (22)
-    ServerKeyExchange, Length=112
+    ServerKeyExchange, Length=111
 Received Record
   Content Type = Handshake (22)
     ServerHelloDone, Length=0
@@ -193,19 +191,55 @@ ALPN protocol: h2
 
 | № | Напрям | `Content Type` | `Inner Content Type` | Повідомлення | `Length` |
 |---|---|---|---|---|---|
-| 1 | | | | | |
+| 1 | К→С | Handshake | - | ClientHello | Length=328 |
+| 2 | С→К | Handshake | - | ServerHello | Length=118 |
+| 3 | С→К | ChangeCipherSpec | - | - | - |
+| 4 | С→К | ApplicationData | Handshake | EncryptedExtensions | Length=15 |
+| 5 | С→К | ApplicationData | Handshake | Certificate | Length=981 |
+| 6 | С→К | ApplicationData | Handshake | CertificateVerify | Length=76 |
+| 7 | С→К | ApplicationData | Handshake | Finished | Length=48 |
+| 8 | К→С | ChangeCipherSpec | - | - | - |
+| 9 | К→С | ApplicationData | Handshake | Finished | Length=48 |
+| 10 | К→С | ApplicationData | Alert | - | - |
 
 Вивід кроків 2.3 і 2.4:
 
 ```text
+root@se-201-04:/lab/work# grep -a -A3 'extension_type=server_name' t2-13.txt | head -4
+        extension_type=server_name(0), length=22
+          0000 - 00 14 00 00 11 63 64 6e-2e 73 65 2d 32 30 31   .....cdn.se-201
+          000f - 2d 30 34 2e 6c 61 62                           -04.lab
+        extension_type=ec_point_formats(11), length=4
+
+root@se-201-04:/lab/work# for v in 1.3 1.2; do
+  timeout 6 tcpdump -ni eth0 -A -s0 -l 'host 10.53.0.80 and tcp port 443' > t2-dump-$v.txt &
+  sleep 1; curl -s -o /dev/null --tlsv1.2 --tls-max $v --cacert $STAND_CA https://cdn.se-201-04.lab/; wait
+  echo "TLS $v: $(grep -a -c 'OPISM Stand Intermediate' t2-dump-$v.txt)"
+done
+[1] 83
+tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+21 packets captured
+21 packets received by filter
+0 packets dropped by kernel
+[1]+  Exit 124                timeout 6 tcpdump -ni eth0 -A -s0 -l 'host 10.53.0.80 and tcp port 443' > t2-dump-$v.txt
+TLS 1.3: 0
+[1] 89
+tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+21 packets captured
+21 packets received by filter
+0 packets dropped by kernel
+[1]+  Exit 124                timeout 6 tcpdump -ni eth0 -A -s0 -l 'host 10.53.0.80 and tcp port 443' > t2-dump-$v.txt
+TLS 1.2: 2
 
 ```
 
 | Показник | TLS 1.3 | TLS 1.2 |
 |---|---|---|
-| Довжина ClientHello, байт | | |
-| Номер першого запису, тип якого спостерігач не бачить | | |
-| Кількість RTT від ClientHello до першого HTTP-запиту | | |
+| Довжина ClientHello, байт | Length=328 | Length=223 |
+| Номер першого запису, тип якого спостерігач не бачить | 4 |  |
+| Кількість RTT від ClientHello до першого HTTP-запиту |  |  |
 | Чи видно сертифікат у дампі (результат 2.4) | | |
 | Обраний протокол ALPN | | |
 
