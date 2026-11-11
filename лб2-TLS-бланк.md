@@ -9,11 +9,11 @@
 
 | Поле | Значення |
 |---|---|
-| ПІБ | Дитюк Даніїл  |
+| ПІБ | Дитюк Даніїл |
 | Група | ІПЗ 2.01 |
 | Ідентифікатор | se-201-04 |
 | Дата виконання | 09.11.26 |
-| Середовище | GitHub Codespaces  |
+| Середовище | GitHub Codespaces |
 | Версія OpenSSL | OpenSSL 3.0.13 30 Jan 2024 (Library: OpenSSL 3.0.13 30 Jan 2024) |
 
 ## Параметри варіанта
@@ -464,8 +464,8 @@ Verify return code: 0 (ok)
 
 | Сервер | Помилка `curl` | `Verify return code` | Яка перевірка не пройшла | Рядок виводу, що це доводить | Що має змінити власник сервера |
 |---|---|---|---|---|---|
-| f1 |  |  |  |  |  |
-| f2 |  |  |  |  |  |
+| f1 | unable to get local issuer certificate | 20 | неможливо отримати сертифікат місцевого емітента | s:O = Foreign Org, CN = Foreign Intermediate CA | Отримати сертифікат від довіренного органу |
+| f2 | no alternative certificate subject name matches target host name 'f2.se-201-04.lab' | 0 | немає альтернативної назви предмета сертифіката | Certificate chain |  |
 | f3 |  |  |  |  |  |
 | f4 |  |  |  |  |  |
 | f5 | - | 0 | - | Verify return code: 0 (ok) | нічого |
