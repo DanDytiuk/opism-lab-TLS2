@@ -464,10 +464,11 @@ Verify return code: 0 (ok)
 
 | Сервер | Помилка `curl` | `Verify return code` | Яка перевірка не пройшла | Рядок виводу, що це доводить | Що має змінити власник сервера |
 |---|---|---|---|---|---|
-| f1 | unable to get local issuer certificate | 20 | неможливо отримати сертифікат місцевого емітента | s:O = Foreign Org, CN = Foreign Intermediate CA | Отримати сертифікат від довіренного органу |
-| f2 | no alternative certificate subject name matches target host name 'f2.se-201-04.lab' | 0 | немає альтернативної назви предмета сертифіката | Certificate chain |  |
-| f3 |  |  |  |  |  |
-| f4 |  |  |  |  |  |
+| f1 | unable to get local issuer certificate | 20 | неможливо отримати сертифікат місцевого емітента | s:O = Foreign Org, CN = Foreign Intermediate CA | отримати сертифікат від довіренного органу |
+| f2 | no alternative certificate subject name matches target host name 'f2.se-201-04.lab' | 0 | немає альтернативної назви предмета сертифіката | Certificate chain | Заміна сертифіката |
+| f3 | unable to get local issuer certificate | 21 | перевірка повноти сертифікатів | Verify return code: 21 (unable to verify the first certificate) | проміжний сертифікат додати |
+| f4 | self-signed certificate | 18 | самопідписаний сертифікат | s:CN = f4.se-201-04.lab
+   i:CN = f4.se-201-04.lab | отримати сертифікат від довіренного органу |
 | f5 | - | 0 | - | Verify return code: 0 (ok) | нічого |
 
 1. Для сервера з помилкою `unable to get local issuer certificate` визначте, яка це несправність: сервер не надсилає проміжний сертифікат чи сертифікат виданий центром, якому клієнт не довіряє. Чим ці дві несправності відрізняються у виводі `openssl s_client`?
